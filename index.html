@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f4ef" />
+    <title>弦日 — 吉他練習室</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#" aria-label="弦日首頁">
+          <span class="brand-mark"><span></span><span></span><span></span></span>
+          <span>弦日<span class="brand-en">STRING DAY</span></span>
+        </a>
+
+        <div class="side-label">練習工具</div>
+        <nav class="main-nav" aria-label="主要功能">
+          <button class="nav-item active" data-view="tuner">
+            <span class="nav-icon">⌁</span><span>調音器</span><span class="nav-caption">TUNER</span>
+          </button>
+          <button class="nav-item" data-view="metronome">
+            <span class="nav-icon">◷</span><span>節拍器</span><span class="nav-caption">METRONOME</span>
+          </button>
+          <button class="nav-item" data-view="training">
+            <span class="nav-icon">♬</span><span>指板訓練</span><span class="nav-caption">FRETBOARD</span>
+          </button>
+        </nav>
+        <div class="sidebar-note">
+          <div class="note-icon">✳</div>
+          <p>每天一點點，<br />讓手感成為你的直覺。</p>
+          <span>YOUR DAILY PRACTICE</span>
+        </div>
+        <div class="side-footer"><span class="status-dot"></span> 練習室已準備好</div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumb"><span>練習室</span><span class="crumb-slash">/</span><strong id="crumb-current">調音器</strong></div>
+          <div class="topbar-right"><span class="today-label" id="today-label"></span><button class="theme-toggle" id="theme-toggle" type="button" aria-label="切換深色模式" aria-pressed="false"><span aria-hidden="true">☾</span><span class="theme-toggle-label">深色模式</span></button><span class="avatar">弦</span></div>
+        </header>
+
+        <section class="view active" id="view-tuner">
+          <div class="page-heading">
+            <div><div class="eyebrow">SOUND CHECK <span>01</span></div><h1>調音器</h1><p>讓每一根弦，都從對的音開始。</p></div>
+          </div>
+          <div class="tuner-layout tuning-collapsed">
+            <section class="card tuner-card">
+              <div class="card-topline"><span>即時音高</span><div class="tuner-card-actions"><span class="live-label"><i></i> LIVE</span><button class="tuning-reopen-toggle" id="tuning-reopen-toggle" type="button" hidden>調弦資料 <span aria-hidden="true">⌄</span></button></div></div>
+              <div class="tuner-display">
+                <div class="tuner-note-wrap">
+                  <div class="tuner-note" id="tuner-note">—</div>
+                  <div class="tuner-octave" id="tuner-octave">等待輸入</div>
+                </div>
+                <div class="tuner-meter" aria-label="音準偏差">
+                  <div class="meter-labels"><span>♭</span><span>IN TUNE</span><span>♯</span></div>
+                  <div class="meter-track"><div class="meter-center"></div><div class="meter-needle" id="meter-needle"></div></div>
+                  <div class="meter-ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                  <div class="cents-value"><strong id="cents-value">0</strong><span>cent</span></div>
+                </div>
+              </div>
+              <div class="tuner-controls">
+                <button class="primary-button" id="mic-button"><span class="mic-icon">◉</span> 開始使用麥克風</button>
+                <p id="mic-status">請允許麥克風存取，並一次撥動一根弦。</p>
+              </div>
+            </section>
+            <aside class="card string-card">
+              <div class="tuning-panel-heading">
+                <span>調弦資料</span>
+                <button class="tuning-fold-toggle" id="tuning-fold-toggle" type="button" aria-expanded="false" aria-controls="tuning-details">
+                  <span id="tuning-fold-label">展開</span><span class="fold-chevron" aria-hidden="true">⌄</span>
+                </button>
+              </div>
+              <div id="tuning-details" hidden>
+                <label class="tuning-select-label" for="tuning-preset">調弦方式</label>
+                <select class="tuning-select" id="tuning-preset">
+                  <optgroup label="標準與降調">
+                    <option value="standard">標準 E</option>
+                    <option value="halfDown">降半音 Eb</option>
+                    <option value="wholeDown">降全音 D</option>
+                    <option value="minorThirdDown">降小三度 C#</option>
+                    <option value="majorThirdDown">降大三度 C</option>
+                    <option value="bStandard">B 標準</option>
+                  </optgroup>
+                  <optgroup label="Drop 調弦">
+                    <option value="dropD">Drop D</option>
+                    <option value="dropDb">Drop Db</option>
+                    <option value="dropC">Drop C</option>
+                    <option value="dropB">Drop B</option>
+                    <option value="dropBb">Drop Bb</option>
+                    <option value="dropA">Drop A</option>
+                    <option value="dropG">Drop G</option>
+                    <option value="doubleDropD">Double Drop D</option>
+                  </optgroup>
+                  <optgroup label="Open 開放調弦">
+                    <option value="openD">Open D</option>
+                    <option value="openE">Open E</option>
+                    <option value="openG">Open G</option>
+                    <option value="openA">Open A</option>
+                    <option value="openC">Open C</option>
+                    <option value="openDm">Open D minor</option>
+                    <option value="openGm">Open G minor</option>
+                    <option value="openC6">Open C6</option>
+                  </optgroup>
+                  <optgroup label="Modal 與創作調弦">
+                    <option value="dadgad">DADGAD</option>
+                    <option value="dadgcd">DADGCD</option>
+                    <option value="cgcfce">CGCFCE</option>
+                    <option value="facgce">FACGCE</option>
+                    <option value="cgdgcd">CGDGCD</option>
+                    <option value="dgdgcd">DGDGCD</option>
+                    <option value="cgcggc">CGCGGC</option>
+                  </optgroup>
+                  <optgroup label="特殊弦組">
+                    <option value="nashville">Nashville 高八度調弦</option>
+                  </optgroup>
+                </select>
+                <p class="tuning-description" id="tuning-description"></p>
+                <div class="string-list" id="tuning-string-list" aria-live="polite"></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="view-metronome">
+          <div class="page-heading">
+            <div><div class="eyebrow">KEEP THE GROOVE <span>02</span></div><h1>節拍器</h1><p>找到穩定的律動，讓每一拍都踏實。</p></div>
+            <div class="tuning-badge"><span class="badge-dot"></span> 節奏練習</div>
+          </div>
+          <div class="metronome-layout">
+            <section class="card metronome-card">
+              <div class="card-topline"><span>速度設定</span><span class="tiny-caption" id="tempo-unit-label">BPM · 四分音符</span></div>
+              <div class="tempo-display"><button class="round-control" id="bpm-down" aria-label="降低速度">−</button><div class="bpm-value"><strong id="bpm-value">90</strong><span>BPM</span></div><button class="round-control" id="bpm-up" aria-label="提高速度">＋</button></div>
+              <input class="tempo-slider" id="tempo-slider" type="range" min="40" max="220" value="90" aria-label="節拍速度" />
+              <div class="tempo-range"><span>40</span><span>220</span></div>
+              <div class="beat-settings">
+                <div class="setting-label"><span>拍號</span><span class="tiny-caption">TIME SIGNATURE</span></div>
+                <div class="beat-options" id="beat-options">
+                  <button class="beat-option" data-meter="2/4">2/4</button><button class="beat-option" data-meter="3/4">3/4</button><button class="beat-option selected" data-meter="4/4">4/4</button><button class="beat-option" data-meter="6/8">6/8</button>
+                </div>
+              </div>
+              <div class="cycle-panel">
+                <div class="cycle-heading">
+                  <div class="setting-label"><span>播放／休息循環</span><span class="tiny-caption">PRACTICE CYCLE</span></div>
+                  <div class="cycle-actions">
+                    <button class="cycle-toggle" id="cycle-toggle" type="button" aria-pressed="false">關閉</button>
+                    <button class="cycle-fold-toggle" id="cycle-fold-toggle" type="button" aria-expanded="false" aria-controls="cycle-settings"><span id="cycle-fold-label">展開</span><span class="fold-chevron" aria-hidden="true">⌄</span></button>
+                  </div>
+                </div>
+                <div id="cycle-settings" hidden>
+                  <div class="cycle-counts">
+                    <div class="cycle-count">
+                      <span>播放小節</span>
+                      <div><button class="cycle-step" data-cycle="play" data-delta="-1" aria-label="減少播放小節">−</button><strong id="play-bars-value">1</strong><button class="cycle-step" data-cycle="play" data-delta="1" aria-label="增加播放小節">＋</button></div>
+                    </div>
+                    <span class="cycle-separator">然後</span>
+                    <div class="cycle-count">
+                      <span>休息小節</span>
+                      <div><button class="cycle-step" data-cycle="rest" data-delta="-1" aria-label="減少休息小節">−</button><strong id="rest-bars-value">1</strong><button class="cycle-step" data-cycle="rest" data-delta="1" aria-label="增加休息小節">＋</button></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="cycle-status" id="cycle-status" aria-live="polite">循環關閉 · 持續播放</div>
+              </div>
+              <div class="beat-visualizer" id="beat-visualizer" aria-label="目前小節拍點">
+                <span class="beat-light accent"></span><span class="beat-light"></span><span class="beat-light"></span><span class="beat-light"></span>
+              </div>
+              <button class="primary-button play-button" id="play-button"><span id="play-icon">▶</span><span id="play-label">開始節拍</span></button>
+              <button class="text-button" id="tap-button">⌁　點按測速 <span>Tap tempo</span></button>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="view-training">
+          <div class="page-heading">
+            <div><div class="eyebrow">KNOW YOUR NECK <span>03</span></div><h1>指板訓練</h1><p>在指板上找到音名，讓每個位置都熟悉起來。</p></div>
+            <div class="score-badge"><span>本次答對</span><strong id="score-value">0</strong><i>連對 <b id="streak-value">0</b></i></div>
+          </div>
+          <section class="card training-card">
+            <div class="question-row">
+              <div><span class="question-label">找到這個音</span><div class="question-prompt">請在指板上找出 <strong id="target-note">C</strong> 音</div></div>
+              <button class="secondary-button" id="new-question">↻　換一題</button>
+            </div>
+            <div class="fretboard-scroll"><div class="fretboard" id="fretboard"></div></div>
+            <div class="fret-numbers" id="fret-numbers"></div>
+            <div class="board-legend"><span><i class="legend-dot"></i> 點選音格作答</span><span>標準調弦 · 0–12 格</span></div>
+            <div class="answer-feedback" id="answer-feedback" aria-live="polite">選擇一個音格開始作答</div>
+          </section>
+          <div class="training-footnote"><span>✳</span> 指板音名依標準調弦排列；第 12 格為空弦音高的八度。</div>
+        </section>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
