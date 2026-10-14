@@ -253,58 +253,72 @@ function detectPitch(buffer, sampleRate) {
   let rms = 0;
   for (let i = 0; i < buffer.length; i += 1) rms += buffer[i] * buffer[i];
   rms = Math.sqrt(rms / buffer.length);
-  if (rms < 0.012) return null;
+  if (rms < 0.001) return { frequency: null, rms };
 
-  let start = 0;
-  let end = buffer.length - 1;
-  while (start < end && Math.abs(buffer[start]) < 0.2) start += 1;
-  while (end > start && Math.abs(buffer[end]) < 0.2) end -= 1;
-  const samples = buffer.slice(start, end + 1);
-  const size = samples.length;
-  const correlations = new Float32Array(size);
-  for (let offset = 0; offset < size; offset += 1) {
-    let sum = 0;
-    for (let i = 0; i < size - offset; i += 1) sum += samples[i] * samples[i + offset];
-    correlations[offset] = sum;
+  const samples = new Float32Array(Math.floor(buffer.length / 2));
+  for (let i = 0; i < samples.length; i += 1) {
+    samples[i] = (buffer[i * 2] + buffer[i * 2 + 1]) / 2;
   }
-  const minOffset = Math.max(2, Math.floor(sampleRate / 400));
-  const maxOffset = Math.min(size - 2, Math.ceil(sampleRate / 40));
+  const size = samples.length;
+  const effectiveSampleRate = sampleRate / 2;
+  const minOffset = Math.max(2, Math.floor(effectiveSampleRate / 400));
+  const maxOffset = Math.min(size - 2, Math.ceil(effectiveSampleRate / 40));
+  const differences = new Float32Array(maxOffset + 1);
+  let differenceSum = 0;
+  for (let offset = 1; offset <= maxOffset; offset += 1) {
+    let difference = 0;
+    for (let i = 0; i < size - offset; i += 1) {
+      const delta = samples[i] - samples[i + offset];
+      difference += delta * delta;
+    }
+    differenceSum += difference;
+    differences[offset] = differenceSum ? (difference * offset) / differenceSum : 1;
+  }
   let bestOffset = -1;
-  let bestCorrelation = 0;
   for (let offset = minOffset; offset <= maxOffset; offset += 1) {
-    if (correlations[offset] > bestCorrelation) {
-      bestCorrelation = correlations[offset];
+    if (differences[offset] < 0.18) {
+      while (offset < maxOffset && differences[offset + 1] < differences[offset]) offset += 1;
       bestOffset = offset;
+      break;
     }
   }
-  if (bestOffset <= 0 || bestCorrelation / correlations[0] < 0.55) return null;
-  const before = correlations[bestOffset - 1] || correlations[bestOffset];
-  const after = correlations[bestOffset + 1] || correlations[bestOffset];
-  const curve = (before - 2 * correlations[bestOffset] + after);
+  if (bestOffset <= 0) return { frequency: null, rms };
+  const before = differences[bestOffset - 1] || differences[bestOffset];
+  const after = differences[bestOffset + 1] || differences[bestOffset];
+  const curve = before - 2 * differences[bestOffset] + after;
   const adjustment = curve ? (before - after) / (2 * curve) : 0;
   const period = bestOffset + adjustment;
-  const frequency = sampleRate / period;
-  return frequency >= 40 && frequency <= 400 ? frequency : null;
+  const frequency = effectiveSampleRate / period;
+  return { frequency: frequency >= 40 && frequency <= 400 ? frequency : null, rms };
 }
 
 function updateTuner() {
   if (!analyser) return;
   const samples = new Float32Array(analyser.fftSize);
   analyser.getFloatTimeDomainData(samples);
-  const frequency = detectPitch(samples, audioContext.sampleRate);
+  const result = detectPitch(samples, audioContext.sampleRate);
+  const frequency = result.frequency;
   if (frequency) {
     const midi = Math.round(69 + 12 * Math.log2(frequency / 440));
     const targetFrequency = 440 * (2 ** ((midi - 69) / 12));
     const cents = Math.round(1200 * Math.log2(frequency / targetFrequency));
     highlightTunedString(midi);
     tunerNote.textContent = noteNames[((midi % 12) + 12) % 12];
-    tunerOctave.textContent = `第 ${Math.floor(midi / 12) - 1} 八度`;
-    centsValue.textContent = `${cents > 0 ? "+" : ""}${cents}`;
+    tunerOctave.textContent = "第 " + (Math.floor(midi / 12) - 1) + " 八度";
+    centsValue.textContent = (cents > 0 ? "+" : "") + cents;
     const position = Math.max(3, Math.min(97, 50 + cents * 1.45));
-    meterNeedle.style.left = `${position}%`;
+    meterNeedle.style.left = position + "%";
     const inTune = Math.abs(cents) <= 5;
     meterNeedle.classList.toggle("in-tune", inTune);
     tunerNote.classList.toggle("in-tune", inTune);
+    if (micStatus.textContent !== "已收到聲音，請一次撥動一根弦。") {
+      micStatus.textContent = "已收到聲音，請一次撥動一根弦。";
+    }
+  } else {
+    const status = result.rms >= 0.001
+      ? "已收到聲音但無法辨識音高，請單獨撥動一根弦並靠近麥克風。"
+      : "正在聆聽，請靠近麥克風單獨撥動一根弦。";
+    if (micStatus.textContent !== status) micStatus.textContent = status;
   }
   tunerFrame = requestAnimationFrame(updateTuner);
 }
@@ -330,15 +344,27 @@ micButton.addEventListener("click", async () => {
     return;
   }
   if (!navigator.mediaDevices?.getUserMedia) {
-    micStatus.textContent = "此瀏覽器無法使用麥克風，請改用支援 HTTPS 的現代瀏覽器。";
+    micStatus.textContent = window.isSecureContext
+      ? "此瀏覽器不支援麥克風，請改用最新版 Safari、Chrome 或 Edge。"
+      : "瀏覽器基於安全性限制無法使用麥克風，請透過 HTTPS 開啟此頁面。";
+    return;
+  }
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextConstructor) {
+    micStatus.textContent = "此瀏覽器不支援音訊分析，請改用最新版 Safari、Chrome 或 Edge。";
     return;
   }
   micButton.disabled = true;
   micStatus.textContent = "正在連接麥克風…";
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    await audioContext.resume();
+    audioContext = new AudioContextConstructor();
+    const [streamResult, resumeResult] = await Promise.allSettled([
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }),
+      audioContext.resume(),
+    ]);
+    if (streamResult.status === "rejected") throw streamResult.reason;
+    micStream = streamResult.value;
+    if (resumeResult.status === "rejected") throw resumeResult.reason;
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 4096;
     microphone = audioContext.createMediaStreamSource(micStream);
@@ -349,14 +375,23 @@ micButton.addEventListener("click", async () => {
   } catch (error) {
     if (micStream) micStream.getTracks().forEach((track) => track.stop());
     micStream = null;
-    micStatus.textContent = error.name === "NotAllowedError"
-      ? "麥克風權限遭拒，請在瀏覽器網址列允許麥克風後重試。"
-      : "無法開啟麥克風，請確認裝置已連接並重試。";
+    analyser = null;
+    microphone = null;
+    if (audioContext) {
+      await audioContext.close();
+      audioContext = null;
+    }
+    micStatus.textContent = error.name === "NotAllowedError" || error.name === "SecurityError"
+      ? "麥克風權限遭拒，請在瀏覽器或系統設定允許此網站使用麥克風後重試。"
+      : error.name === "NotFoundError"
+        ? "找不到可用的麥克風，請確認裝置已連接。"
+        : error.name === "NotReadableError"
+          ? "無法讀取麥克風，請確認沒有其他程式正在使用，並檢查系統的麥克風權限。"
+          : "無法啟動麥克風或音訊分析，請確認權限後重試。";
   } finally {
     micButton.disabled = false;
   }
 });
-
 // Metronome
 const bpmValue = document.getElementById("bpm-value");
 const tempoSlider = document.getElementById("tempo-slider");
