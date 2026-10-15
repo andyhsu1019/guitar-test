@@ -892,6 +892,7 @@ function recordTrainerAnswer(isCorrect, message, cell = null) {
     feedback.className = "answer-feedback success";
     if (cell) cell.classList.add("correct");
     feedback.textContent = message;
+    playCorrectSound();
     window.setTimeout(newQuestion, 1100);
     return;
   }
@@ -901,6 +902,37 @@ function recordTrainerAnswer(isCorrect, message, cell = null) {
   feedback.className = "answer-feedback error";
   if (cell) cell.classList.add("wrong");
   feedback.textContent = message;
+}
+
+function playCorrectSound() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc1.frequency.setValueAtTime(800, now);
+    osc1.frequency.setValueAtTime(1200, now + 0.15);
+
+    osc2.frequency.setValueAtTime(600, now);
+    osc2.frequency.setValueAtTime(900, now + 0.15);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.2);
+    osc2.stop(now + 0.2);
+  } catch (e) {
+    // 靜默處理音效失敗
+  }
 }
 
 function submitTrainerNote(note, cell = null, fromMicrophone = false) {
