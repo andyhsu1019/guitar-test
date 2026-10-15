@@ -419,6 +419,7 @@ let totalBars = 0;
 let scheduler;
 let visualTimers = [];
 let tapTimes = [];
+let metronomeSound = "electronic";
 
 function setBpm(value) {
   bpm = Math.max(40, Math.min(220, Math.round(value)));
@@ -482,6 +483,10 @@ beatOptions.addEventListener("click", (event) => {
   currentBeat = 0;
 });
 
+document.getElementById("sound-select").addEventListener("change", (event) => {
+  metronomeSound = event.target.value;
+});
+
 function updateCycleStatus(message) {
   cycleStatus.textContent = message;
 }
@@ -529,14 +534,39 @@ function scheduleClick(time, beat, shouldSound, barNumber, isRest, isAccent) {
   if (shouldSound) {
     const oscillator = metronomeContext.createOscillator();
     const gain = metronomeContext.createGain();
-    oscillator.frequency.value = isAccent ? 1100 : 800;
+
+    let freq, volume, duration;
+
+    if (metronomeSound === "electronic") {
+      freq = isAccent ? 1100 : 800;
+      volume = isAccent ? 0.7 : 0.42;
+      duration = 0.06;
+    } else if (metronomeSound === "woodblock") {
+      freq = isAccent ? 1800 : 1200;
+      volume = isAccent ? 0.6 : 0.35;
+      duration = 0.04;
+    } else if (metronomeSound === "bell") {
+      freq = isAccent ? 880 : 660;
+      volume = isAccent ? 0.5 : 0.3;
+      duration = 0.15;
+    } else if (metronomeSound === "deepbell") {
+      freq = isAccent ? 440 : 330;
+      volume = isAccent ? 0.5 : 0.3;
+      duration = 0.2;
+    } else if (metronomeSound === "beep") {
+      freq = isAccent ? 1000 : 700;
+      volume = isAccent ? 0.4 : 0.25;
+      duration = 0.08;
+    }
+
+    oscillator.frequency.value = freq;
     gain.gain.setValueAtTime(0.0001, time);
-    gain.gain.exponentialRampToValueAtTime(isAccent ? 0.7 : 0.42, time + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.055);
+    gain.gain.exponentialRampToValueAtTime(volume, time + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
     oscillator.connect(gain);
     gain.connect(metronomeContext.destination);
     oscillator.start(time);
-    oscillator.stop(time + 0.06);
+    oscillator.stop(time + duration);
   }
   const delay = Math.max(0, (time - metronomeContext.currentTime) * 1000);
   const timer = window.setTimeout(() => {

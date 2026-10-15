@@ -150,6 +150,9 @@ h1 { margin: 0; color: #292d24; font-size: 29px; font-weight: 700; letter-spacin
 .beat-light.active.silent { border-color: #b3b7ac; background: #d4d7cf; color: #73776d; box-shadow: 0 0 0 4px #f0f1ed; }
 .beat-visualizer.resting .beat-light { opacity: .45; }
 .beat-pattern-hint { margin: 11px 0 0; color: #a0a196; font-size: 9px; text-align: center; }
+.metronome-sound-settings { margin-top: 15px; }
+.metronome-sound-settings .setting-label { display: block; margin-bottom: 8px; }
+.sound-select { width: 100%; padding: 7px 8px; border: 1px solid #e8e8df; border-radius: 5px; background: #fff; color: #5a5f54; font-family: "DM Sans", sans-serif; font-size: 10px; cursor: pointer; }
 .cycle-panel { margin-top: 17px; padding: 13px 14px 11px; border: 1px solid #ecebe4; border-radius: 6px; background: #faf9f5; text-align: left; }
 .cycle-heading { display: flex; align-items: center; justify-content: space-between; }
 .cycle-actions { display: flex; align-items: center; gap: 8px; }
