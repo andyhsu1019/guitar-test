@@ -50,7 +50,7 @@
           </div>
           <div class="tuner-layout tuning-collapsed">
             <section class="card tuner-card">
-              <div class="card-topline"><span>即時音高</span><div class="tuner-card-actions"><span class="live-label"><i></i> LIVE</span><button class="tuning-reopen-toggle" id="tuning-reopen-toggle" type="button" hidden>調弦資料 <span aria-hidden="true">⌄</span></button></div></div>
+              <div class="card-topline"><span>即時音高</span><div class="tuner-card-actions"><span class="live-label"><i></i> LIVE</span></div></div>
               <div class="tuner-display">
                 <div class="tuner-note-wrap">
                   <div class="tuner-note" id="tuner-note">—</div>
@@ -64,17 +64,12 @@
                 </div>
               </div>
               <div class="tuner-controls">
-                <button class="primary-button" id="mic-button"><span class="mic-icon">◉</span> 開始使用麥克風</button>
+                <button class="primary-button" id="mic-button"><span class="mic-icon">◉</span> 開始調音</button>
+                <button class="tuning-data-button" id="tuning-data-button" type="button" aria-expanded="false" aria-controls="tuning-details"><span aria-hidden="true">♫</span> <span id="tuning-data-button-label">調弦資料</span></button>
                 <p id="mic-status">請允許麥克風存取，並一次撥動一根弦。</p>
               </div>
             </section>
             <aside class="card string-card">
-              <div class="tuning-panel-heading">
-                <span>調弦資料</span>
-                <button class="tuning-fold-toggle" id="tuning-fold-toggle" type="button" aria-expanded="false" aria-controls="tuning-details">
-                  <span id="tuning-fold-label">展開</span><span class="fold-chevron" aria-hidden="true">⌄</span>
-                </button>
-              </div>
               <div id="tuning-details" hidden>
                 <label class="tuning-select-label" for="tuning-preset">調弦方式</label>
                 <select class="tuning-select" id="tuning-preset">
@@ -129,7 +124,6 @@
         <section class="view" id="view-metronome">
           <div class="page-heading">
             <div><div class="eyebrow">KEEP THE GROOVE <span>02</span></div><h1>節拍器</h1><p>找到穩定的律動，讓每一拍都踏實。</p></div>
-            <div class="tuning-badge"><span class="badge-dot"></span> 節奏練習</div>
           </div>
           <div class="metronome-layout">
             <section class="card metronome-card">
@@ -166,11 +160,16 @@
                 </div>
                 <div class="cycle-status" id="cycle-status" aria-live="polite">循環關閉 · 持續播放</div>
               </div>
-              <div class="beat-visualizer" id="beat-visualizer" aria-label="目前小節拍點">
+              <div class="beat-visualizer" id="beat-visualizer" role="group" aria-label="拍點設定">
                 <span class="beat-light accent"></span><span class="beat-light"></span><span class="beat-light"></span><span class="beat-light"></span>
               </div>
+              <p class="beat-pattern-hint">點擊拍點切換：一般 → 重拍 → 不發聲</p>
               <button class="primary-button play-button" id="play-button"><span id="play-icon">▶</span><span id="play-label">開始節拍</span></button>
-              <button class="text-button" id="tap-button">⌁　點按測速 <span>Tap tempo</span></button>
+              <button class="tap-button" id="tap-button" type="button" aria-label="點按測速">
+                <span class="tap-icon" aria-hidden="true">⌁</span>
+                <span class="tap-label">點按測速</span>
+                <span class="tap-caption">TAP TEMPO</span>
+              </button>
             </section>
           </div>
         </section>
@@ -181,15 +180,28 @@
             <div class="score-badge"><span>本次答對</span><strong id="score-value">0</strong><i>連對 <b id="streak-value">0</b></i></div>
           </div>
           <section class="card training-card">
+            <div class="trainer-mode-options" role="group" aria-label="選擇練習題型">
+              <button class="trainer-mode-button selected" type="button" data-trainer-mode="position" aria-pressed="true">指定弦找音</button>
+              <button class="trainer-mode-button" type="button" data-trainer-mode="allNotes" aria-pressed="false">全指板找音</button>
+              <button class="trainer-mode-button" type="button" data-trainer-mode="chord" aria-pressed="false">和弦指型</button>
+            </div>
             <div class="question-row">
-              <div><span class="question-label">找到這個音</span><div class="question-prompt">請在指板上找出 <strong id="target-note">C</strong> 音</div></div>
+              <div><span class="question-label" id="question-label">指定弦找音</span><div class="question-prompt"><span id="question-lead">請在第 1 弦找出</span> <strong id="target-note">C</strong> <span id="question-suffix">音</span></div></div>
               <button class="secondary-button" id="new-question">↻　換一題</button>
+            </div>
+            <div class="trainer-audio-controls">
+              <button class="secondary-button trainer-mic-button" id="trainer-mic-button" type="button"><span class="mic-icon">◉</span> 麥克風作答</button>
+              <p id="trainer-mic-status" aria-live="polite">開啟麥克風後，直接彈奏單音作答。</p>
             </div>
             <div class="fretboard-scroll">
               <div class="fretboard" id="fretboard"></div>
               <div class="fret-numbers" id="fret-numbers"></div>
             </div>
-            <div class="board-legend"><span><i class="legend-dot"></i> 點選音格作答</span><span>標準調弦 · 0–12 格</span></div>
+            <div class="chord-answer-controls" id="chord-answer-controls" hidden>
+              <span>每條弦選一格，組成和弦；可選開放弦。</span>
+              <div><button class="secondary-button" id="clear-chord-selection" type="button">清除選擇</button><button class="primary-button" id="check-chord-answer" type="button">確認和弦</button></div>
+            </div>
+            <div class="board-legend"><span><i class="legend-dot"></i> 點選音格或彈奏作答</span><span>標準調弦 · 0–12 格</span></div>
             <div class="answer-feedback" id="answer-feedback" aria-live="polite">選擇一個音格開始作答</div>
           </section>
           <div class="training-footnote"><span>✳</span> 指板音名依標準調弦排列；第 12 格為空弦音高的八度。</div>

@@ -6,6 +6,7 @@ const titles = { tuner: "調音器", metronome: "節拍器", training: "指板�
 navItems.forEach((item) => {
   item.addEventListener("click", () => {
     const selected = item.dataset.view;
+    if (selected !== "training" && (trainerMicStream || trainerMicStarting)) stopTrainerMicrophone();
     navItems.forEach((nav) => nav.classList.toggle("active", nav === item));
     views.forEach((view) => view.classList.toggle("active", view.id === `view-${selected}`));
     breadcrumb.textContent = titles[selected];
@@ -192,8 +193,8 @@ const tunings = {
 const tuningPreset = document.getElementById("tuning-preset");
 const tuningDescription = document.getElementById("tuning-description");
 const tuningStringList = document.getElementById("tuning-string-list");
-const tuningFoldToggle = document.getElementById("tuning-fold-toggle");
-const tuningReopenToggle = document.getElementById("tuning-reopen-toggle");
+const tuningDataButton = document.getElementById("tuning-data-button");
+const tuningDataButtonLabel = document.getElementById("tuning-data-button-label");
 const tuningDetails = document.getElementById("tuning-details");
 const tunerLayout = document.querySelector(".tuner-layout");
 let selectedTuning = tunings[tuningPreset.value];
@@ -222,16 +223,14 @@ function highlightTunedString(midi) {
 tuningPreset.addEventListener("change", () => {
   renderTuning();
 });
-tuningFoldToggle.addEventListener("click", () => {
-  setTuningPanelExpanded(false);
+tuningDataButton.addEventListener("click", () => {
+  setTuningPanelExpanded(tuningDataButton.getAttribute("aria-expanded") !== "true");
 });
-tuningReopenToggle.addEventListener("click", () => setTuningPanelExpanded(true));
 
 function setTuningPanelExpanded(expanded) {
-  tuningFoldToggle.setAttribute("aria-expanded", String(expanded));
-  tuningReopenToggle.hidden = expanded;
+  tuningDataButton.setAttribute("aria-expanded", String(expanded));
+  tuningDataButtonLabel.textContent = expanded ? "收合調弦資料" : "調弦資料";
   tuningDetails.hidden = !expanded;
-  document.getElementById("tuning-fold-label").textContent = "收合";
   tunerLayout.classList.toggle("tuning-collapsed", !expanded);
 }
 setTuningPanelExpanded(false);
@@ -249,49 +248,55 @@ let microphone;
 let tunerFrame;
 let micStream;
 
-function detectPitch(buffer, sampleRate) {
+function detectPitch(buffer, sampleRate, maxFrequency = 400) {
   let rms = 0;
   for (let i = 0; i < buffer.length; i += 1) rms += buffer[i] * buffer[i];
   rms = Math.sqrt(rms / buffer.length);
-  if (rms < 0.012) return null;
+  if (rms < 0.001) return { frequency: null, rms };
 
-  let start = 0;
-  let end = buffer.length - 1;
-  while (start < end && Math.abs(buffer[start]) < 0.2) start += 1;
-  while (end > start && Math.abs(buffer[end]) < 0.2) end -= 1;
-  const samples = buffer.slice(start, end + 1);
-  const size = samples.length;
-  const correlations = new Float32Array(size);
-  for (let offset = 0; offset < size; offset += 1) {
-    let sum = 0;
-    for (let i = 0; i < size - offset; i += 1) sum += samples[i] * samples[i + offset];
-    correlations[offset] = sum;
+  const samples = new Float32Array(Math.floor(buffer.length / 2));
+  for (let i = 0; i < samples.length; i += 1) {
+    samples[i] = (buffer[i * 2] + buffer[i * 2 + 1]) / 2;
   }
-  const minOffset = Math.max(2, Math.floor(sampleRate / 400));
-  const maxOffset = Math.min(size - 2, Math.ceil(sampleRate / 40));
+  const size = samples.length;
+  const effectiveSampleRate = sampleRate / 2;
+  const minOffset = Math.max(2, Math.floor(effectiveSampleRate / maxFrequency));
+  const maxOffset = Math.min(size - 2, Math.ceil(effectiveSampleRate / 40));
+  const differences = new Float32Array(maxOffset + 1);
+  let differenceSum = 0;
+  for (let offset = 1; offset <= maxOffset; offset += 1) {
+    let difference = 0;
+    for (let i = 0; i < size - offset; i += 1) {
+      const delta = samples[i] - samples[i + offset];
+      difference += delta * delta;
+    }
+    differenceSum += difference;
+    differences[offset] = differenceSum ? (difference * offset) / differenceSum : 1;
+  }
   let bestOffset = -1;
-  let bestCorrelation = 0;
   for (let offset = minOffset; offset <= maxOffset; offset += 1) {
-    if (correlations[offset] > bestCorrelation) {
-      bestCorrelation = correlations[offset];
+    if (differences[offset] < 0.18) {
+      while (offset < maxOffset && differences[offset + 1] < differences[offset]) offset += 1;
       bestOffset = offset;
+      break;
     }
   }
-  if (bestOffset <= 0 || bestCorrelation / correlations[0] < 0.55) return null;
-  const before = correlations[bestOffset - 1] || correlations[bestOffset];
-  const after = correlations[bestOffset + 1] || correlations[bestOffset];
-  const curve = (before - 2 * correlations[bestOffset] + after);
+  if (bestOffset <= 0) return { frequency: null, rms };
+  const before = differences[bestOffset - 1] || differences[bestOffset];
+  const after = differences[bestOffset + 1] || differences[bestOffset];
+  const curve = before - 2 * differences[bestOffset] + after;
   const adjustment = curve ? (before - after) / (2 * curve) : 0;
   const period = bestOffset + adjustment;
-  const frequency = sampleRate / period;
-  return frequency >= 40 && frequency <= 400 ? frequency : null;
+  const frequency = effectiveSampleRate / period;
+  return { frequency: frequency >= 40 && frequency <= maxFrequency ? frequency : null, rms };
 }
 
 function updateTuner() {
   if (!analyser) return;
   const samples = new Float32Array(analyser.fftSize);
   analyser.getFloatTimeDomainData(samples);
-  const frequency = detectPitch(samples, audioContext.sampleRate);
+  const result = detectPitch(samples, audioContext.sampleRate);
+  const frequency = result.frequency;
   if (frequency) {
     const midi = Math.round(69 + 12 * Math.log2(frequency / 440));
     const targetFrequency = 440 * (2 ** ((midi - 69) / 12));
@@ -305,6 +310,14 @@ function updateTuner() {
     const inTune = Math.abs(cents) <= 5;
     meterNeedle.classList.toggle("in-tune", inTune);
     tunerNote.classList.toggle("in-tune", inTune);
+    if (micStatus.textContent !== "已收到聲音，請一次撥動一根弦。") {
+      micStatus.textContent = "已收到聲音，請一次撥動一根弦。";
+    }
+  } else {
+    const status = result.rms >= 0.001
+      ? "已收到聲音但無法辨識音高，請單獨撥動一根弦並靠近麥克風。"
+      : "正在聆聽，請靠近麥克風單獨撥動一根弦。";
+    if (micStatus.textContent !== status) micStatus.textContent = status;
   }
   tunerFrame = requestAnimationFrame(updateTuner);
 }
@@ -318,7 +331,7 @@ micButton.addEventListener("click", async () => {
     microphone = null;
     if (audioContext) await audioContext.close();
     audioContext = null;
-    micButton.innerHTML = '<span class="mic-icon">◉</span> 開始使用麥克風';
+    micButton.innerHTML = '<span class="mic-icon">◉</span> 開始調音';
     micStatus.textContent = "已停止收音。需要時可再次開啟調音器。";
     tunerNote.textContent = "—";
     tunerNote.classList.remove("in-tune");
@@ -330,28 +343,50 @@ micButton.addEventListener("click", async () => {
     return;
   }
   if (!navigator.mediaDevices?.getUserMedia) {
-    micStatus.textContent = "此瀏覽器無法使用麥克風，請改用支援 HTTPS 的現代瀏覽器。";
+    micStatus.textContent = window.isSecureContext
+      ? "此瀏覽器不支援麥克風，請改用最新版 Safari、Chrome 或 Edge。"
+      : "瀏覽器基於安全性限制無法使用麥克風，請透過 HTTPS 開啟此頁面。";
+    return;
+  }
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextConstructor) {
+    micStatus.textContent = "此瀏覽器不支援音訊分析，請改用最新版 Safari、Chrome 或 Edge。";
     return;
   }
   micButton.disabled = true;
   micStatus.textContent = "正在連接麥克風…";
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    await audioContext.resume();
+    audioContext = new AudioContextConstructor();
+    const [streamResult, resumeResult] = await Promise.allSettled([
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }),
+      audioContext.resume(),
+    ]);
+    if (streamResult.status === "rejected") throw streamResult.reason;
+    micStream = streamResult.value;
+    if (resumeResult.status === "rejected") throw resumeResult.reason;
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 4096;
     microphone = audioContext.createMediaStreamSource(micStream);
     microphone.connect(analyser);
-    micButton.innerHTML = '<span class="mic-icon">■</span> 停止收音';
+    micButton.innerHTML = '<span class="mic-icon">■</span> 停止調音';
     micStatus.textContent = "正在聆聽，請靠近麥克風單獨撥動一根弦。";
     updateTuner();
   } catch (error) {
     if (micStream) micStream.getTracks().forEach((track) => track.stop());
     micStream = null;
-    micStatus.textContent = error.name === "NotAllowedError"
-      ? "麥克風權限遭拒，請在瀏覽器網址列允許麥克風後重試。"
-      : "無法開啟麥克風，請確認裝置已連接並重試。";
+    analyser = null;
+    microphone = null;
+    if (audioContext) {
+      await audioContext.close();
+      audioContext = null;
+    }
+    micStatus.textContent = error.name === "NotAllowedError" || error.name === "SecurityError"
+      ? "麥克風權限遭拒，請在瀏覽器或系統設定允許此網站使用麥克風後重試。"
+      : error.name === "NotFoundError"
+        ? "找不到可用的麥克風，請確認裝置已連接。"
+        : error.name === "NotReadableError"
+          ? "無法讀取麥克風，請確認沒有其他程式正在使用，並檢查系統的麥克風權限。"
+          : "無法啟動麥克風或音訊分析，請確認權限後重試。";
   } finally {
     micButton.disabled = false;
   }
@@ -371,6 +406,7 @@ const playLabel = document.getElementById("play-label");
 let bpm = 90;
 let beatsPerBar = 4;
 let meter = "4/4";
+let beatPattern = [];
 let practiceCycleEnabled = false;
 let playBars = 1;
 let restBars = 1;
@@ -395,12 +431,38 @@ function setBpm(value) {
 function updateBeatDots() {
   beatVisualizer.innerHTML = "";
   for (let i = 0; i < beatsPerBar; i += 1) {
-    const dot = document.createElement("span");
-    const isAccent = meter === "6/8" ? i === 0 || i === 3 : i === 0;
-    dot.className = `beat-light${isAccent ? " accent" : ""}`;
+    const dot = document.createElement("button");
+    const state = beatPattern[i];
+    dot.type = "button";
+    dot.dataset.beat = String(i);
+    dot.className = `beat-light${state === "accent" ? " accent" : ""}${state === "silent" ? " silent" : ""}`;
+    dot.textContent = String(i + 1);
+    dot.setAttribute("aria-label", getBeatLabel(i, state));
+    dot.setAttribute("aria-pressed", String(state !== "normal"));
     beatVisualizer.append(dot);
   }
 }
+
+function getBeatLabel(beat, state) {
+  const stateLabel = state === "accent" ? "重拍" : state === "silent" ? "不發聲" : "一般";
+  return `第 ${beat + 1} 拍：${stateLabel}，點擊切換`;
+}
+
+function setDefaultBeatPattern() {
+  beatPattern = Array.from({ length: beatsPerBar }, (_, index) => (
+    index === 0 || (meter === "6/8" && index === 3) ? "accent" : "normal"
+  ));
+}
+
+beatVisualizer.addEventListener("click", (event) => {
+  const beatButton = event.target.closest(".beat-light");
+  if (!beatButton) return;
+  const beat = Number(beatButton.dataset.beat);
+  const states = ["normal", "accent", "silent"];
+  const currentStateIndex = states.indexOf(beatPattern[beat]);
+  beatPattern[beat] = states[(currentStateIndex + 1) % states.length];
+  updateBeatDots();
+});
 
 document.getElementById("bpm-down").addEventListener("click", () => setBpm(bpm - 1));
 document.getElementById("bpm-up").addEventListener("click", () => setBpm(bpm + 1));
@@ -408,12 +470,14 @@ tempoSlider.addEventListener("input", () => setBpm(tempoSlider.value));
 beatOptions.addEventListener("click", (event) => {
   const option = event.target.closest("[data-meter]");
   if (!option) return;
+  if (meter === option.dataset.meter) return;
   meter = option.dataset.meter;
   beatsPerBar = meter === "6/8" ? 6 : Number(meter.split("/")[0]);
   document.getElementById("tempo-unit-label").textContent = meter === "6/8"
     ? "BPM · 附點四分音符"
     : "BPM · 四分音符";
   beatOptions.querySelectorAll("button").forEach((button) => button.classList.toggle("selected", button === option));
+  setDefaultBeatPattern();
   updateBeatDots();
   currentBeat = 0;
 });
@@ -504,8 +568,8 @@ function scheduleMetronome() {
     const isRest = practiceCycleEnabled && cycleBar >= playBars;
     const shouldSound = !isRest;
     const barNumber = practiceCycleEnabled ? cycleBar + 1 : totalBars + 1;
-    const isAccent = meter === "6/8" ? currentBeat === 0 || currentBeat === 3 : currentBeat === 0;
-    scheduleClick(nextBeatTime, currentBeat, shouldSound, barNumber, isRest, isAccent);
+    const beatState = beatPattern[currentBeat];
+    scheduleClick(nextBeatTime, currentBeat, shouldSound && beatState !== "silent", barNumber, isRest, beatState === "accent");
     nextBeatTime += meter === "6/8" ? 20 / bpm : 60 / bpm;
     currentBeat = (currentBeat + 1) % beatsPerBar;
     if (currentBeat === 0) {
@@ -576,11 +640,65 @@ const strings = [
 const fretboard = document.getElementById("fretboard");
 const fretNumbers = document.getElementById("fret-numbers");
 const targetNoteElement = document.getElementById("target-note");
+const questionLabel = document.getElementById("question-label");
+const questionLead = document.getElementById("question-lead");
+const questionSuffix = document.getElementById("question-suffix");
 const feedback = document.getElementById("answer-feedback");
+const trainerMicButton = document.getElementById("trainer-mic-button");
+const trainerMicStatus = document.getElementById("trainer-mic-status");
+const chordAnswerControls = document.getElementById("chord-answer-controls");
+const trainerChordTypes = [
+  { suffix: "", label: "大三和弦", intervals: [0, 4, 7] },
+  { suffix: "m", label: "小三和弦", intervals: [0, 3, 7] },
+  { suffix: "dim", label: "減三和弦", intervals: [0, 3, 6] },
+  { suffix: "dim7", label: "減七和弦", intervals: [0, 3, 6, 9] },
+  { suffix: "aug", label: "增三和弦", intervals: [0, 4, 8] },
+  { suffix: "5", label: "強力和弦", intervals: [0, 7] },
+  { suffix: "sus2", label: "掛二和弦", intervals: [0, 2, 7] },
+  { suffix: "sus4", label: "掛四和弦", intervals: [0, 5, 7] },
+  { suffix: "6", label: "六和弦", intervals: [0, 4, 7, 9] },
+  { suffix: "m6", label: "小六和弦", intervals: [0, 3, 7, 9] },
+  { suffix: "7", label: "屬七和弦", intervals: [0, 4, 7, 10] },
+  { suffix: "maj7", label: "大七和弦", intervals: [0, 4, 7, 11] },
+  { suffix: "m7", label: "小七和弦", intervals: [0, 3, 7, 10] },
+  { suffix: "m7b5", label: "半減七和弦", intervals: [0, 3, 6, 10] },
+  { suffix: "mMaj7", label: "小大七和弦", intervals: [0, 3, 7, 11] },
+  { suffix: "7b5", label: "屬七降五和弦", intervals: [0, 4, 6, 10] },
+  { suffix: "7#5", label: "屬七升五和弦", intervals: [0, 4, 8, 10] },
+  { suffix: "7sus2", label: "掛二屬七和弦", intervals: [0, 2, 7, 10] },
+  { suffix: "7sus4", label: "掛四屬七和弦", intervals: [0, 5, 7, 10] },
+  { suffix: "add9", label: "加九和弦", intervals: [0, 2, 4, 7] },
+  { suffix: "madd9", label: "小加九和弦", intervals: [0, 2, 3, 7] },
+  { suffix: "6/9", label: "六九和弦", intervals: [0, 2, 4, 7, 9] },
+  { suffix: "9", label: "屬九和弦", intervals: [0, 2, 4, 7, 10] },
+  { suffix: "maj9", label: "大九和弦", intervals: [0, 2, 4, 7, 11] },
+  { suffix: "m9", label: "小九和弦", intervals: [0, 2, 3, 7, 10] },
+  { suffix: "7b9", label: "屬七降九和弦", intervals: [0, 1, 4, 7, 10] },
+  { suffix: "7#9", label: "屬七升九和弦", intervals: [0, 3, 4, 7, 10] },
+  { suffix: "9sus4", label: "掛四屬九和弦", intervals: [0, 2, 5, 7, 10] },
+  { suffix: "11", label: "屬十一和弦", intervals: [0, 2, 4, 5, 7, 10] },
+  { suffix: "m11", label: "小十一和弦", intervals: [0, 2, 3, 5, 7, 10] },
+  { suffix: "13", label: "屬十三和弦", intervals: [0, 2, 4, 5, 7, 9, 10] },
+];
+const chordRoots = noteNames.map((_, index) => index);
 let targetNote = 0;
+let targetString = strings[0];
+let trainerMode = "position";
+let targetChord;
 let score = 0;
 let streak = 0;
 let answered = false;
+let trainerAudioContext;
+let trainerAnalyser;
+let trainerMicrophone;
+let trainerMicStream;
+let trainerMicFrame;
+let trainerCandidateNote = -1;
+let trainerCandidateFrames = 0;
+let trainerSilenceFrames = 0;
+let trainerPitchLatched = false;
+let trainerMicStarting = false;
+let trainerMicRequestId = 0;
 
 function buildFretboard() {
   strings.forEach((string) => {
@@ -596,6 +714,7 @@ function buildFretboard() {
       cell.className = `fret-cell${fret === 0 ? " open-fret" : ""}`;
       cell.setAttribute("aria-label", `${string.name} 弦第 ${fret} 格，${noteNames[(string.midi + fret) % 12]}`);
       cell.dataset.note = String((string.midi + fret) % 12);
+      cell.dataset.midi = String(string.midi + fret);
       cell.dataset.string = string.name;
       cell.dataset.fret = String(fret);
       if (fret === 0) {
@@ -610,41 +729,413 @@ function buildFretboard() {
   fretNumbers.innerHTML = "<span></span>" + Array.from({ length: 13 }, (_, fret) => `<span>${fret}</span>`).join("");
 }
 
-function newQuestion() {
-  targetNote = Math.floor(Math.random() * noteNames.length);
-  targetNoteElement.textContent = noteNames[targetNote];
-  answered = false;
-  feedback.className = "answer-feedback";
-  feedback.textContent = "選擇一個音格開始作答";
-  fretboard.querySelectorAll(".fret-cell").forEach((cell) => cell.classList.remove("marked", "correct", "wrong"));
+function clearFretboardMarks() {
+  fretboard.querySelectorAll(".fret-cell").forEach((cell) => {
+    cell.classList.remove("marked", "correct", "wrong", "selected");
+    cell.setAttribute("aria-pressed", "false");
+  });
 }
 
-fretboard.addEventListener("click", (event) => {
-  const cell = event.target.closest(".fret-cell");
-  if (!cell || answered) return;
-  cell.classList.add("marked");
-  if (Number(cell.dataset.note) === targetNote) {
+function formatChord(chord) {
+  return `${noteNames[chord.root]}${chord.type.suffix}`;
+}
+
+function buildChordBank() {
+  return chordRoots.flatMap((root) => trainerChordTypes.map((type) => ({
+    root,
+    type,
+    notes: type.intervals.map((interval) => (root + interval) % 12),
+  })));
+}
+const trainerChordBank = buildChordBank();
+const trainerChordTemplates = trainerChordBank.reduce((templates, chord) => {
+  const key = [...chord.notes].sort((a, b) => a - b).join(",");
+  if (!templates.some((template) => template.key === key)) templates.push({ key, chord });
+  return templates;
+}, []);
+
+function setTrainerMode(mode) {
+  trainerMode = mode;
+  document.querySelectorAll(".trainer-mode-button").forEach((button) => {
+    const selected = button.dataset.trainerMode === mode;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  chordAnswerControls.hidden = mode !== "chord";
+  newQuestion();
+}
+
+document.querySelectorAll(".trainer-mode-button").forEach((button) => {
+  button.addEventListener("click", () => setTrainerMode(button.dataset.trainerMode));
+});
+
+function newQuestion() {
+  answered = false;
+  feedback.className = "answer-feedback";
+  clearFretboardMarks();
+  trainerCandidateNote = -1;
+  trainerCandidateFrames = 0;
+  trainerSilenceFrames = 0;
+  trainerPitchLatched = false;
+
+  if (trainerMode !== "chord") {
+    targetNote = Math.floor(Math.random() * noteNames.length);
+    if (trainerMode === "position") {
+      targetString = strings[Math.floor(Math.random() * strings.length)];
+      questionLabel.textContent = "指定弦找音";
+      questionLead.textContent = `請在 ${targetString.name} 弦找出`;
+    } else {
+      targetString = null;
+      questionLabel.textContent = "全指板找音";
+      questionLead.textContent = "請在指板上找出";
+    }
+    targetNoteElement.textContent = noteNames[targetNote];
+    questionSuffix.textContent = "音";
+    feedback.textContent = trainerMode === "position"
+      ? "點選指定弦上的音格，或彈出該音作答"
+      : "點選任何弦上的正確音格，或彈出該音作答";
+    trainerMicStatus.textContent = trainerMode === "position"
+      ? "麥克風能辨識音高；要練指定弦請點選指板作答。"
+      : "直接彈奏目標音，或在指板上找到任一正確位置。";
+  } else {
+    targetChord = trainerChordBank[Math.floor(Math.random() * trainerChordBank.length)];
+    questionLabel.textContent = "和弦指型";
+    questionLead.textContent = "請彈出";
+    targetNoteElement.textContent = formatChord(targetChord);
+    questionSuffix.textContent = "和弦";
+    feedback.textContent = "在指板選出和弦音後確認，或用吉他彈出整個和弦";
+    trainerMicStatus.textContent = "麥克風作答請一次刷響和弦中的多條弦。";
+  }
+}
+
+function recordTrainerAnswer(isCorrect, message, cell = null) {
+  if (answered) return;
+  if (isCorrect) {
     answered = true;
     score += 1;
     streak += 1;
     document.getElementById("score-value").textContent = score;
     document.getElementById("streak-value").textContent = streak;
-    cell.classList.add("correct");
     feedback.className = "answer-feedback success";
-    feedback.textContent = `答對了！${cell.dataset.string} 弦第 ${cell.dataset.fret} 格是 ${noteNames[targetNote]}。繼續保持！`;
+    if (cell) cell.classList.add("correct");
+    feedback.textContent = message;
     window.setTimeout(newQuestion, 1100);
+    return;
+  }
+
+  streak = 0;
+  document.getElementById("streak-value").textContent = streak;
+  feedback.className = "answer-feedback error";
+  if (cell) cell.classList.add("wrong");
+  feedback.textContent = message;
+}
+
+function submitTrainerNote(note, cell = null, fromMicrophone = false) {
+  const correct = note === targetNote
+    && (trainerMode === "allNotes" || fromMicrophone || !cell || cell.dataset.string === targetString.name);
+  const message = correct
+    ? fromMicrophone
+      ? `答對了！聽到 ${noteNames[note]} 音。繼續保持！`
+      : `答對了！${cell.dataset.string} 弦上的 ${noteNames[targetNote]} 音。繼續保持！`
+    : fromMicrophone
+      ? `聽到 ${noteNames[note]} 音，目標是 ${noteNames[targetNote]}。請停止音符後再試。`
+      : trainerMode === "position"
+        ? `請在 ${targetString.name} 弦找出 ${noteNames[targetNote]} 音。`
+        : `請在指板任一位置找出 ${noteNames[targetNote]} 音。`;
+  recordTrainerAnswer(correct, message, cell);
+}
+
+function toggleChordCell(cell) {
+  fretboard.querySelectorAll(".fret-cell.wrong").forEach((markedCell) => markedCell.classList.remove("wrong"));
+  const sameStringSelection = fretboard.querySelector(`.fret-cell.selected[data-string="${cell.dataset.string}"]`);
+  if (sameStringSelection === cell) {
+    cell.classList.remove("selected", "marked");
+    cell.setAttribute("aria-pressed", "false");
   } else {
-    streak = 0;
-    document.getElementById("streak-value").textContent = streak;
-    cell.classList.add("wrong");
-    feedback.className = "answer-feedback error";
-    feedback.textContent = "還差一點，再試試其他音格。";
+    if (sameStringSelection) {
+      sameStringSelection.classList.remove("selected", "marked");
+      sameStringSelection.setAttribute("aria-pressed", "false");
+    }
+    cell.classList.add("selected", "marked");
+    cell.classList.remove("wrong");
+    cell.setAttribute("aria-pressed", "true");
+  }
+}
+
+function checkChordSelection() {
+  if (answered) return;
+  const selected = [...fretboard.querySelectorAll(".fret-cell.selected")];
+  const selectedNotes = new Set(selected.map((cell) => Number(cell.dataset.note)));
+  const chordNotes = new Set(targetChord.notes);
+  const correct = selectedNotes.size === chordNotes.size
+    && [...chordNotes].every((note) => selectedNotes.has(note));
+  if (correct) {
+    selected.forEach((cell) => cell.classList.add("correct"));
+    recordTrainerAnswer(true, `答對了！這是 ${formatChord(targetChord)} 和弦。`, selected[0]);
+  } else {
+    selected.forEach((cell) => cell.classList.add("wrong"));
+    const missing = [...chordNotes].filter((note) => !selectedNotes.has(note)).map((note) => noteNames[note]);
+    const extra = [...selectedNotes].filter((note) => !chordNotes.has(note)).map((note) => noteNames[note]);
+    const hint = missing.length ? `還缺 ${missing.join("、")} 音` : `多選了 ${extra.join("、")} 音`;
+    recordTrainerAnswer(false, `還不是 ${formatChord(targetChord)}：${hint}。調整指板上的選擇後再確認。`);
+  }
+}
+
+fretboard.addEventListener("click", (event) => {
+  const cell = event.target.closest(".fret-cell");
+  if (!cell || answered) return;
+  if (trainerMode === "chord") {
+    toggleChordCell(cell);
+    return;
+  }
+  submitTrainerNote(Number(cell.dataset.note), cell);
+});
+
+document.getElementById("clear-chord-selection").addEventListener("click", () => {
+  if (answered) return;
+  fretboard.querySelectorAll(".fret-cell.selected").forEach((cell) => {
+    cell.classList.remove("selected", "marked", "wrong");
+    cell.setAttribute("aria-pressed", "false");
+  });
+  feedback.className = "answer-feedback";
+  feedback.textContent = "已清除選擇，重新組成和弦再確認";
+});
+document.getElementById("check-chord-answer").addEventListener("click", checkChordSelection);
+
+function detectTrainerChord() {
+  const spectrum = new Float32Array(trainerAnalyser.frequencyBinCount);
+  trainerAnalyser.getFloatFrequencyData(spectrum);
+  let maxDecibels = -Infinity;
+  for (const value of spectrum) {
+    if (Number.isFinite(value)) maxDecibels = Math.max(maxDecibels, value);
+  }
+  if (maxDecibels < -70) return null;
+
+  const strengths = new Float64Array(12);
+  const binHz = trainerAudioContext.sampleRate / trainerAnalyser.fftSize;
+  for (let bin = 2; bin < spectrum.length - 1; bin += 1) {
+    const decibels = spectrum[bin];
+    if (!Number.isFinite(decibels) || decibels < maxDecibels - 36
+      || decibels < spectrum[bin - 1] || decibels <= spectrum[bin + 1]) continue;
+    const frequency = bin * binHz;
+    if (frequency < 65 || frequency > 1200) continue;
+    const midi = Math.round(69 + 12 * Math.log2(frequency / 440));
+    if (Math.abs(1200 * Math.log2(frequency / (440 * (2 ** ((midi - 69) / 12))))) > 45) continue;
+    const note = ((midi % 12) + 12) % 12;
+    const amplitude = 10 ** ((decibels - maxDecibels) / 20);
+    strengths[note] = Math.max(strengths[note], amplitude);
+  }
+
+  const norm = Math.sqrt(strengths.reduce((sum, value) => sum + value * value, 0));
+  const peak = Math.max(...strengths);
+  if (!norm || peak < 0.12) return null;
+
+  let bestChord = null;
+  let bestScore = -1;
+  let secondScore = -1;
+  for (const template of trainerChordTemplates) {
+    const chord = template.chord;
+    const score = chord.notes.reduce((sum, note) => sum + strengths[note], 0)
+      / (Math.sqrt(chord.notes.length) * norm);
+    const allNotesPresent = chord.notes.every((note) => strengths[note] >= peak * 0.12);
+    if (!allNotesPresent) continue;
+    if (score > bestScore) {
+      secondScore = bestScore;
+      bestScore = score;
+      bestChord = chord;
+    } else if (score > secondScore) {
+      secondScore = score;
+    }
+  }
+  if (!bestChord || bestScore < 0.62 || (secondScore >= 0 && bestScore - secondScore < 0.035)) return null;
+  return bestChord;
+}
+
+function updateTrainerPitch() {
+  if (!trainerAnalyser) return;
+  if (trainerMode === "chord") {
+    const chord = detectTrainerChord();
+    if (!chord) {
+      trainerSilenceFrames += 1;
+      if (trainerSilenceFrames >= 8) {
+        trainerCandidateNote = -1;
+        trainerCandidateFrames = 0;
+        trainerPitchLatched = false;
+        trainerMicStatus.textContent = "正在聆聽，請同時彈響和弦中的多條弦。";
+      }
+    } else {
+      trainerSilenceFrames = 0;
+      const chordName = formatChord(chord);
+      const candidate = trainerChordTemplates.findIndex((template) => template.key === [...chord.notes].sort((a, b) => a - b).join(","));
+      if (candidate === trainerCandidateNote) trainerCandidateFrames += 1;
+      else {
+        trainerCandidateNote = candidate;
+        trainerCandidateFrames = 1;
+      }
+      if (trainerPitchLatched) {
+        trainerMicStatus.textContent = `已聽到 ${chordName}，請停止後再彈下一個和弦。`;
+      } else if (trainerCandidateFrames >= 4) {
+        trainerPitchLatched = true;
+        trainerMicStatus.textContent = `辨識到 ${chordName}。`;
+        const isTargetChord = chord.notes.length === targetChord.notes.length
+          && chord.notes.every((note) => targetChord.notes.includes(note));
+        recordTrainerAnswer(isTargetChord, isTargetChord
+          ? `答對了！聽到 ${chordName} 和弦。`
+          : `聽到 ${chordName} 和弦，目標是 ${formatChord(targetChord)}。`);
+      } else {
+        trainerMicStatus.textContent = `正在辨識 ${chordName}…`;
+      }
+    }
+    trainerMicFrame = requestAnimationFrame(updateTrainerPitch);
+    return;
+  }
+
+  const samples = new Float32Array(trainerAnalyser.fftSize);
+  trainerAnalyser.getFloatTimeDomainData(samples);
+  const result = detectPitch(samples, trainerAudioContext.sampleRate, 800);
+
+  if (!result.frequency) {
+    trainerSilenceFrames += 1;
+    if (trainerSilenceFrames >= 8) {
+      trainerCandidateNote = -1;
+      trainerCandidateFrames = 0;
+      trainerPitchLatched = false;
+      trainerMicStatus.textContent = "正在聆聽，請單獨彈奏一個音。";
+    }
+  } else {
+    trainerSilenceFrames = 0;
+    const midi = Math.round(69 + 12 * Math.log2(result.frequency / 440));
+    const note = ((midi % 12) + 12) % 12;
+    if (note === trainerCandidateNote) {
+      trainerCandidateFrames += 1;
+    } else {
+      trainerCandidateNote = note;
+      trainerCandidateFrames = 1;
+    }
+
+    if (trainerPitchLatched) {
+      trainerMicStatus.textContent = `已聽到 ${noteNames[note]} 音，請停止音符後再彈下一個。`;
+    } else if (trainerCandidateFrames >= 3) {
+      trainerPitchLatched = true;
+      trainerMicStatus.textContent = `辨識到 ${noteNames[note]} 音。`;
+      submitTrainerNote(note, null, true);
+    } else {
+      trainerMicStatus.textContent = `正在辨識 ${noteNames[note]} 音…`;
+    }
+  }
+
+  trainerMicFrame = requestAnimationFrame(updateTrainerPitch);
+}
+
+async function stopTrainerMicrophone() {
+  trainerMicRequestId += 1;
+  trainerMicStarting = false;
+  if (trainerMicFrame) cancelAnimationFrame(trainerMicFrame);
+  trainerMicFrame = null;
+  if (trainerMicStream) trainerMicStream.getTracks().forEach((track) => track.stop());
+  trainerMicStream = null;
+  trainerAnalyser = null;
+  if (trainerMicrophone) trainerMicrophone.disconnect();
+  trainerMicrophone = null;
+  const context = trainerAudioContext;
+  trainerAudioContext = null;
+  trainerMicButton.disabled = true;
+  try {
+    if (context && context.state !== "closed") await context.close();
+    trainerMicButton.innerHTML = '<span class="mic-icon">◉</span> 麥克風作答';
+    trainerMicStatus.textContent = "麥克風已關閉。";
+  } catch (error) {
+    trainerMicStatus.textContent = "關閉麥克風時發生錯誤，請重新整理頁面後再試。";
+    console.error("Unable to close trainer microphone", error);
+  } finally {
+    trainerMicButton.disabled = false;
+  }
+}
+
+trainerMicButton.addEventListener("click", async () => {
+  if (trainerMicStream) {
+    await stopTrainerMicrophone();
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    trainerMicStatus.textContent = window.isSecureContext
+      ? "此瀏覽器不支援麥克風，請改用最新版 Safari、Chrome 或 Edge。"
+      : "麥克風需要安全連線，請透過 HTTPS 或 localhost 開啟此頁面。";
+    return;
+  }
+  const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextConstructor) {
+    trainerMicStatus.textContent = "此瀏覽器不支援音訊分析，請改用最新版 Safari、Chrome 或 Edge。";
+    return;
+  }
+
+  const requestId = ++trainerMicRequestId;
+  trainerMicStarting = true;
+  trainerMicButton.disabled = true;
+  trainerMicStatus.textContent = "正在連接麥克風…";
+  let context;
+  try {
+    context = new AudioContextConstructor();
+    trainerAudioContext = context;
+    const [streamResult, resumeResult] = await Promise.allSettled([
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }),
+      context.resume(),
+    ]);
+    if (requestId !== trainerMicRequestId) {
+      if (streamResult.status === "fulfilled") streamResult.value.getTracks().forEach((track) => track.stop());
+      if (context.state !== "closed") await context.close();
+      if (trainerAudioContext === context) trainerAudioContext = null;
+      return;
+    }
+    if (streamResult.status === "rejected") throw streamResult.reason;
+    trainerMicStream = streamResult.value;
+    if (resumeResult.status === "rejected") throw resumeResult.reason;
+
+    trainerAnalyser = context.createAnalyser();
+    trainerAnalyser.fftSize = 8192;
+    trainerMicrophone = context.createMediaStreamSource(trainerMicStream);
+    trainerMicrophone.connect(trainerAnalyser);
+    trainerCandidateNote = -1;
+    trainerCandidateFrames = 0;
+    trainerSilenceFrames = 0;
+    trainerPitchLatched = false;
+    trainerMicButton.innerHTML = '<span class="mic-icon">■</span> 停止收音';
+    trainerMicStatus.textContent = "正在聆聽，請單獨彈奏一個音。";
+    updateTrainerPitch();
+  } catch (error) {
+    if (requestId !== trainerMicRequestId) return;
+    if (trainerMicStream) trainerMicStream.getTracks().forEach((track) => track.stop());
+    trainerMicStream = null;
+    trainerAnalyser = null;
+    if (trainerMicrophone) trainerMicrophone.disconnect();
+    trainerMicrophone = null;
+    if (trainerAudioContext && trainerAudioContext.state !== "closed") {
+      try {
+        await trainerAudioContext.close();
+      } catch (closeError) {
+        console.error("Unable to clean up trainer audio context", closeError);
+      }
+    }
+    trainerAudioContext = null;
+    trainerMicStatus.textContent = error.name === "NotAllowedError" || error.name === "SecurityError"
+      ? "麥克風權限遭拒，請在瀏覽器或系統設定允許此網站使用麥克風後重試。"
+      : error.name === "NotFoundError"
+        ? "找不到可用的麥克風，請確認裝置已連接。"
+        : error.name === "NotReadableError"
+          ? "無法讀取麥克風，請確認裝置與系統權限後重試。"
+          : "無法啟動麥克風或音訊分析，請確認權限後重試。";
+  } finally {
+    if (requestId === trainerMicRequestId) {
+      trainerMicStarting = false;
+      trainerMicButton.disabled = false;
+    }
   }
 });
 
 document.getElementById("new-question").addEventListener("click", newQuestion);
 buildFretboard();
 newQuestion();
+setDefaultBeatPattern();
 updateBeatDots();
 setBpm(bpm);
 updateCycleControls();
