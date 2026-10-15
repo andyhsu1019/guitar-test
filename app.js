@@ -893,7 +893,7 @@ function recordTrainerAnswer(isCorrect, message, cell = null) {
     if (cell) cell.classList.add("correct");
     feedback.textContent = message;
     playCorrectSound();
-    window.setTimeout(newQuestion, 1100);
+    window.setTimeout(newQuestion, 1500);
     return;
   }
 
