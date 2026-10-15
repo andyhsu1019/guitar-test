@@ -221,7 +221,7 @@ h1 { margin: 0; color: #292d24; font-size: 29px; font-weight: 700; letter-spacin
 .fret-cell:hover { background: #d8e0cd; }
 .fret-cell.marked::before { position: absolute; top: 50%; left: 50%; z-index: 1; width: 20px; height: 20px; border-radius: 50%; background: #93a786; content: ""; opacity: .88; transform: translate(-50%, -50%); }
 .fret-cell.selected::before { width: 24px; height: 24px; background: #779369; box-shadow: 0 0 0 3px rgb(255 255 255 / 58%); }
-.fret-cell.correct::before { background: #688a5d; }
+.fret-cell.correct::before { content: "✓"; color: #4caf50; font-size: 18px; font-weight: 600; background: transparent; border-radius: 0; }
 .fret-cell.wrong::before { content: "✕"; color: #e74c3c; font-size: 18px; font-weight: 600; background: transparent; border-radius: 0; }
 .fret-cell.open-fret { background: #e8e0cf; }
 .fret-cell.open-fret .open-dot { position: relative; z-index: 2; width: 5px; height: 5px; border-radius: 50%; background: #b8aa8e; }
