@@ -39,8 +39,9 @@ updateThemeButton();
 let uiScale = parseFloat(localStorage.getItem("string-day-ui-scale")) || 1;
 
 function applyUIScale(scale) {
-  uiScale = Math.max(0.8, Math.min(1.3, scale));
-  document.documentElement.style.fontSize = (16 * uiScale) + "px";
+  uiScale = Math.max(0.8, Math.min(2, scale));
+  document.documentElement.style.transform = `scale(${uiScale})`;
+  document.documentElement.style.transformOrigin = "top center";
   localStorage.setItem("string-day-ui-scale", uiScale);
   document.getElementById("size-reset").textContent = Math.round(uiScale * 100) + "%";
 }
