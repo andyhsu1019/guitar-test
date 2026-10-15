@@ -14,24 +14,25 @@ navItems.forEach((item) => {
   });
 });
 
-const sidebarToggle = document.getElementById("sidebar-toggle");
-const mainNav = document.getElementById("main-nav");
-let navExpanded = localStorage.getItem("string-day-nav-expanded") !== "false";
+const sidebarCollapseBtn = document.getElementById("sidebar-collapse-btn");
+const sidebar = document.querySelector(".sidebar");
+const appShell = document.querySelector(".app-shell");
+let sidebarCollapsed = localStorage.getItem("string-day-sidebar-collapsed") === "true";
 
-function updateNavToggle() {
-  mainNav.classList.toggle("collapsed", !navExpanded);
-  sidebarToggle.setAttribute("aria-expanded", String(navExpanded));
-  const chevron = sidebarToggle.querySelector(".toggle-chevron");
-  chevron.style.transform = navExpanded ? "rotate(0deg)" : "rotate(-90deg)";
+function updateSidebarState() {
+  sidebar.classList.toggle("collapsed", sidebarCollapsed);
+  appShell.classList.toggle("sidebar-collapsed", sidebarCollapsed);
+  sidebarCollapseBtn.textContent = sidebarCollapsed ? "▶" : "◀";
+  sidebarCollapseBtn.setAttribute("aria-label", sidebarCollapsed ? "展開側邊欄" : "收合側邊欄");
 }
 
-sidebarToggle.addEventListener("click", () => {
-  navExpanded = !navExpanded;
-  localStorage.setItem("string-day-nav-expanded", navExpanded);
-  updateNavToggle();
+sidebarCollapseBtn.addEventListener("click", () => {
+  sidebarCollapsed = !sidebarCollapsed;
+  localStorage.setItem("string-day-sidebar-collapsed", sidebarCollapsed);
+  updateSidebarState();
 });
 
-updateNavToggle();
+updateSidebarState();
 
 const now = new Date();
 document.getElementById("today-label").textContent = new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "long", day: "numeric" }).format(now);
