@@ -831,6 +831,7 @@ function recordTrainerAnswer(isCorrect, message, cell = null) {
 }
 
 function submitTrainerNote(note, cell = null, fromMicrophone = false) {
+  console.log("Debug:", { note, targetNote, trainerMode, string: cell?.dataset.string, targetString: targetString?.name });
   const correct = note === targetNote
     && (trainerMode === "allNotes" || fromMicrophone || !cell || cell.dataset.string === targetString.name);
   const message = correct
