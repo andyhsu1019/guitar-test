@@ -36,6 +36,21 @@ themeToggle.addEventListener("click", () => {
 });
 updateThemeButton();
 
+let uiScale = parseFloat(localStorage.getItem("string-day-ui-scale")) || 1;
+
+function applyUIScale(scale) {
+  uiScale = Math.max(0.8, Math.min(1.3, scale));
+  document.documentElement.style.fontSize = (16 * uiScale) + "px";
+  localStorage.setItem("string-day-ui-scale", uiScale);
+  document.getElementById("size-reset").textContent = Math.round(uiScale * 100) + "%";
+}
+
+document.getElementById("size-decrease").addEventListener("click", () => applyUIScale(uiScale - 0.1));
+document.getElementById("size-reset").addEventListener("click", () => applyUIScale(1));
+document.getElementById("size-increase").addEventListener("click", () => applyUIScale(uiScale + 0.1));
+
+applyUIScale(uiScale);
+
 const noteNames = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
 
 // Tuner
@@ -852,7 +867,6 @@ function recordTrainerAnswer(isCorrect, message, cell = null) {
     feedback.className = "answer-feedback success";
     if (cell) cell.classList.add("correct");
     feedback.textContent = message;
-    playSuccessSound();
     window.setTimeout(newQuestion, 1100);
     return;
   }
@@ -862,35 +876,6 @@ function recordTrainerAnswer(isCorrect, message, cell = null) {
   feedback.className = "answer-feedback error";
   if (cell) cell.classList.add("wrong");
   feedback.textContent = message;
-}
-
-function playSuccessSound() {
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = audioCtx.currentTime;
-
-    // 播放兩個上升的音符（如小提琴的成功聲）
-    const freqs = [523.25, 659.25]; // C5, E5
-    const duration = 0.3;
-
-    freqs.forEach((freq, index) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      osc.frequency.value = freq;
-      osc.type = "sine";
-
-      gain.gain.setValueAtTime(0.1, now + index * 0.15);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.15 + duration);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(now + index * 0.15);
-      osc.stop(now + index * 0.15 + duration);
-    });
-  } catch (e) {
-    // 如果音頻播放失敗，忽略
-  }
 }
 
 function submitTrainerNote(note, cell = null, fromMicrophone = false) {

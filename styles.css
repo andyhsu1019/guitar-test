@@ -45,13 +45,15 @@ button { color: inherit; }
 .breadcrumb strong { color: #42453d; font-weight: 600; }
 .crumb-slash { color: #c8c8be; }
 .topbar-right { display: flex; align-items: center; gap: 19px; }
-.ui-controls { display: flex; align-items: center; gap: 8px; }
-.size-select { padding: 6px 8px; border: 1px solid #e7e7df; border-radius: 6px; background: #fbfaf6; color: #77796f; cursor: pointer; font-size: 10px; font-family: "DM Sans", sans-serif; transition: background .18s, border-color .18s; }
-.size-select:hover { border-color: #c6cbbd; background: #f3f4ed; }
 .today-label { color: #999b91; font-family: "DM Mono", monospace; font-size: 10px; }
 .theme-toggle { display: inline-flex; min-height: 32px; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid #e7e7df; border-radius: 6px; background: #fbfaf6; color: #77796f; cursor: pointer; font-size: 10px; transition: background .18s, border-color .18s, color .18s; }
 .theme-toggle:hover { border-color: #c6cbbd; background: #f3f4ed; }
 .theme-toggle > span:first-child { font-size: 15px; line-height: 1; }
+.ui-size-controls { display: flex; gap: 4px; }
+.size-btn { display: inline-flex; min-height: 32px; align-items: center; justify-content: center; min-width: 32px; padding: 0 6px; border: 1px solid #e7e7df; border-radius: 6px; background: #fbfaf6; color: #77796f; cursor: pointer; font-size: 9px; font-weight: 600; transition: background .18s, border-color .18s, color .18s; }
+.size-btn:hover { border-color: #c6cbbd; background: #f3f4ed; }
+[data-theme="dark"] .size-btn { border-color: #41483f; background: #252a25; color: #c4c9bd; }
+[data-theme="dark"] .size-btn:hover { border-color: #65775d; background: #2d342c; }
 .avatar { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid #e2e5d8; border-radius: 50%; background: #eff2e9; color: var(--green); font-size: 12px; font-weight: 700; }
 .view { display: none; padding: 43px 0 60px; animation: appear .25s ease-out; }
 .view.active { display: block; }
@@ -240,7 +242,7 @@ h1 { margin: 0; color: #292d24; font-size: 29px; font-weight: 700; letter-spacin
 .chord-answer-controls .primary-button { min-height: 35px; padding: 0 12px; font-size: 10px; }
 .board-legend > span:first-child { display: flex; align-items: center; gap: 7px; }
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: #93a786; }
-.answer-feedback { display: flex; min-height: 56px; align-items: center; margin-top: 15px; padding: 14px 16px; border-radius: 6px; background: #f6f6f0; color: #8e9085; font-size: 11px; line-height: 1.6; transition: opacity .3s, background .3s, color .3s, min-height .3s; }
+.answer-feedback { display: flex; min-height: 56px; align-items: center; margin-top: 15px; padding: 14px 16px; border-radius: 6px; background: #f6f6f0; color: #8e9085; font-size: 11px; line-height: 1.6; }
 .answer-feedback.success { min-height: 72px; justify-content: center; border: 1px solid #cbd9bf; background: #eff4eb; color: #4f7145; font-size: 16px; font-weight: 700; text-align: center; }
 .answer-feedback.error { background: #faf0e9; color: #ac704f; }
 .training-footnote { display: flex; align-items: center; gap: 9px; margin-top: 15px; color: #999a8f; font-size: 9px; }
