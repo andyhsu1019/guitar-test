@@ -1240,6 +1240,7 @@ trainerMicButton.addEventListener("click", async () => {
 
 document.getElementById("new-question").addEventListener("click", newQuestion);
 buildFretboard();
+chordAnswerControls.hidden = true;
 newQuestion();
 setDefaultBeatPattern();
 updateBeatDots();
