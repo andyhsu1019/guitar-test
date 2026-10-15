@@ -81,7 +81,7 @@ h1 { margin: 0; color: #292d24; font-size: 29px; font-weight: 700; letter-spacin
 .tuner-layout.tuning-collapsed .string-card { display: none; }
 .tuner-layout.tuning-collapsed .tuner-card { grid-column: 1; }
 .metronome-layout { display: grid; grid-template-columns: minmax(0, 650px); justify-content: center; }
-.tuner-card { min-height: 380px; padding: 18px 20px 16px; }
+.tuner-card { min-height: 380px; max-width: 450px; margin: 0 auto; padding: 18px 20px 16px; }
 .card-topline { display: flex; align-items: center; justify-content: space-between; color: #52554b; font-size: 12px; font-weight: 600; }
 .tuner-card-actions { display: flex; align-items: center; gap: 12px; }
 .tuning-reopen-toggle { align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: #828479; cursor: pointer; font-size: 9px; }
