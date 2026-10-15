@@ -11,6 +11,7 @@ navItems.forEach((item) => {
     navItems.forEach((nav) => nav.classList.toggle("active", nav === item));
     views.forEach((view) => view.classList.toggle("active", view.id === `view-${selected}`));
     breadcrumb.textContent = titles[selected];
+    setTimeout(() => applyUIScale(uiScale), 0);
   });
 });
 
@@ -60,16 +61,11 @@ let uiScale = parseFloat(localStorage.getItem("string-day-ui-scale")) || 1;
 
 function applyUIScale(scale) {
   uiScale = Math.max(0.8, Math.min(2, scale));
-  const mainContent = document.querySelector(".main-content");
-  const topbar = document.querySelector(".topbar");
-  if (mainContent) {
-    mainContent.style.transform = `scale(${uiScale})`;
-    mainContent.style.transformOrigin = "top center";
-  }
-  if (topbar) {
-    topbar.style.transform = `scale(${1 / uiScale})`;
-    topbar.style.transformOrigin = "top center";
-  }
+  const cards = document.querySelectorAll(".card");
+  cards.forEach((card) => {
+    card.style.transform = `scale(${uiScale})`;
+    card.style.transformOrigin = "top center";
+  });
   localStorage.setItem("string-day-ui-scale", uiScale);
   document.getElementById("size-reset").textContent = Math.round(uiScale * 100) + "%";
 }
