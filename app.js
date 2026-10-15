@@ -4,9 +4,10 @@ const breadcrumb = document.getElementById("crumb-current");
 const titles = { tuner: "調音器", metronome: "節拍器", training: "指板訓練" };
 
 navItems.forEach((item) => {
-  item.addEventListener("click", () => {
+  item.addEventListener("click", async () => {
     const selected = item.dataset.view;
     if (selected !== "training" && (trainerMicStream || trainerMicStarting)) stopTrainerMicrophone();
+    if (selected !== "metronome" && isPlaying) await stopMetronome();
     navItems.forEach((nav) => nav.classList.toggle("active", nav === item));
     views.forEach((view) => view.classList.toggle("active", view.id === `view-${selected}`));
     breadcrumb.textContent = titles[selected];
