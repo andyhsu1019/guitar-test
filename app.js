@@ -14,6 +14,25 @@ navItems.forEach((item) => {
   });
 });
 
+const sidebarToggle = document.getElementById("sidebar-toggle");
+const mainNav = document.getElementById("main-nav");
+let navExpanded = localStorage.getItem("string-day-nav-expanded") !== "false";
+
+function updateNavToggle() {
+  mainNav.classList.toggle("collapsed", !navExpanded);
+  sidebarToggle.setAttribute("aria-expanded", String(navExpanded));
+  const chevron = sidebarToggle.querySelector(".toggle-chevron");
+  chevron.style.transform = navExpanded ? "rotate(0deg)" : "rotate(-90deg)";
+}
+
+sidebarToggle.addEventListener("click", () => {
+  navExpanded = !navExpanded;
+  localStorage.setItem("string-day-nav-expanded", navExpanded);
+  updateNavToggle();
+});
+
+updateNavToggle();
+
 const now = new Date();
 document.getElementById("today-label").textContent = new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "long", day: "numeric" }).format(now);
 
