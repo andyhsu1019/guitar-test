@@ -782,10 +782,12 @@ function newQuestion() {
     targetNote = Math.floor(Math.random() * noteNames.length);
     if (trainerMode === "position") {
       targetString = strings[Math.floor(Math.random() * strings.length)];
+      console.log("Position Mode - New Question:", { targetNote: noteNames[targetNote], targetString: targetString.name });
       questionLabel.textContent = "指定弦找音";
       questionLead.textContent = `請在 ${targetString.name} 弦找出`;
     } else {
       targetString = null;
+      console.log("AllNotes Mode - New Question:", { targetNote: noteNames[targetNote] });
       questionLabel.textContent = "全指板找音";
       questionLead.textContent = "請在指板上找出";
     }
