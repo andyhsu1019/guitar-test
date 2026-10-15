@@ -81,7 +81,7 @@ h1 { margin: 0; color: #292d24; font-size: 29px; font-weight: 700; letter-spacin
 .tuner-layout.tuning-collapsed .string-card { display: none; }
 .tuner-layout.tuning-collapsed .tuner-card { grid-column: 1; }
 .metronome-layout { display: grid; grid-template-columns: minmax(0, 650px); justify-content: center; }
-.tuner-card { min-height: 492px; padding: 24px 26px 20px; }
+.tuner-card { min-height: 380px; padding: 18px 20px 16px; }
 .card-topline { display: flex; align-items: center; justify-content: space-between; color: #52554b; font-size: 12px; font-weight: 600; }
 .tuner-card-actions { display: flex; align-items: center; gap: 12px; }
 .tuning-reopen-toggle { align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: #828479; cursor: pointer; font-size: 9px; }
@@ -89,7 +89,7 @@ h1 { margin: 0; color: #292d24; font-size: 29px; font-weight: 700; letter-spacin
 .tuning-reopen-toggle:hover { color: var(--green-dark); }
 .live-label { display: flex; align-items: center; gap: 6px; color: #a2a398; font-family: "DM Mono", monospace; font-size: 9px; letter-spacing: 1px; }
 .live-label i { width: 6px; height: 6px; border-radius: 50%; background: #96b28d; }
-.tuner-display { display: grid; grid-template-columns: 135px 1fr; align-items: center; gap: 13px; max-width: 610px; margin: 47px auto 34px; }
+.tuner-display { display: grid; grid-template-columns: 135px 1fr; align-items: center; gap: 13px; max-width: 610px; margin: 28px auto 20px; }
 .tuner-note-wrap { text-align: center; }
 .tuner-note { min-height: 93px; color: var(--green); font-family: "DM Mono", monospace; font-size: 80px; font-weight: 500; line-height: 1.12; }
 .tuner-note.in-tune { color: #63834f; }
