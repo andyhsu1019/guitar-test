@@ -64,7 +64,7 @@ function applyUIScale(scale) {
   const cards = document.querySelectorAll(".card");
   cards.forEach((card) => {
     card.style.transform = `scale(${uiScale})`;
-    card.style.transformOrigin = "top center";
+    card.style.transformOrigin = "top left";
   });
   localStorage.setItem("string-day-ui-scale", uiScale);
   document.getElementById("size-reset").textContent = Math.round(uiScale * 100) + "%";
