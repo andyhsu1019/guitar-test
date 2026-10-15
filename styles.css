@@ -32,8 +32,7 @@ button { color: inherit; }
 .sidebar-collapse-btn:hover { color: #c4c9bd; }
 [data-theme="dark"] .sidebar-collapse-btn:hover { color: #65775d; }
 .sidebar.collapsed { width: 40px; min-width: 40px; overflow: hidden; padding-right: 0; }
-.sidebar.collapsed .brand, .sidebar.collapsed .side-label, .sidebar.collapsed .nav-item span:not(.nav-icon), .sidebar.collapsed .nav-item .nav-caption { display: none; }
-.sidebar.collapsed .nav-item { min-height: 40px; justify-content: center; }
+.sidebar.collapsed .brand, .sidebar.collapsed .side-label, .sidebar.collapsed .main-nav { display: none; }
 .app-shell.sidebar-collapsed .main-content { margin-left: 0; }
 .nav-item { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: #6f7169; cursor: pointer; text-align: left; font-size: 13px; font-weight: 600; transition: background .18s, color .18s; }
 .nav-item:hover { background: #f3f2ec; color: var(--ink); }
