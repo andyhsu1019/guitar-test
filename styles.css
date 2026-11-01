@@ -422,3 +422,88 @@ h1 { margin: 0; color: #292d24; font-size: 29px; font-weight: 700; letter-spacin
   .cycle-counts { flex-wrap: wrap; gap: 12px 10px; }
   .cycle-separator { display: none; }
 }
+
+
+/* ===== 簡化導航改進 ===== */
+.side-label { display: none; }
+.nav-caption { display: none; }
+.nav-item { grid-template-columns: 30px 1fr; }
+.nav-divider { height: 1px; background: #e9e8e0; margin: 12px 0; }
+[data-theme="dark"] .nav-divider { background: #3a3f38; }
+.sidebar.collapsed .nav-divider { display: none; }
+
+/* ===== 文字可讀性改進 ===== */
+h1 { font-size: 32px; letter-spacing: -0.5px; }
+.setting-label { font-size: 12px; font-weight: 600; }
+.tiny-caption { font-size: 9px; }
+
+/* ===== 按鈕狀態反饋增強 ===== */
+button { transition: all 0.18s ease; }
+.primary-button { 
+  background: var(--green); 
+  color: white; 
+  border: none;
+  box-shadow: 0 2px 6px rgba(78, 112, 79, 0.15);
+  font-weight: 600;
+}
+.primary-button:hover { 
+  background: var(--green-dark); 
+  box-shadow: 0 4px 12px rgba(78, 112, 79, 0.25);
+  transform: translateY(-1px);
+}
+.primary-button:active { 
+  transform: translateY(0); 
+  box-shadow: 0 1px 4px rgba(78, 112, 79, 0.2);
+}
+
+.secondary-button {
+  transition: all 0.18s ease;
+}
+.secondary-button:hover {
+  background: #f3f4ed;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .primary-button {
+  background: #52c77a;
+  box-shadow: 0 2px 6px rgba(82, 199, 122, 0.2);
+}
+[data-theme="dark"] .primary-button:hover {
+  background: #3da860;
+}
+
+/* ===== 空白和間距優化 ===== */
+.card { padding: 24px; }
+.tuner-card { min-height: 520px; }
+.main-nav { gap: 8px; }
+.view { padding: 50px 0 60px; }
+.page-heading { margin-bottom: 32px; }
+.nav-item { min-height: 44px; }
+
+/* ===== 暗色模式完善 ===== */
+[data-theme="dark"] { color: #e8f5e9; }
+[data-theme="dark"] .card {
+  background: #1a1f18;
+  border-color: #2a2f28;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+[data-theme="dark"] .topbar { border-bottom-color: #2a2f28; }
+
+/* ===== 響應式設計 ===== */
+@media (max-width: 768px) {
+  .sidebar { width: 60px; }
+  .main-content { margin-left: 60px; }
+  h1 { font-size: 24px; }
+  .view { padding: 30px 0 40px; }
+  .card { padding: 16px; }
+  .nav-item { min-height: 40px; font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .sidebar { width: 0; }
+  .main-content { margin-left: 0; }
+  h1 { font-size: 20px; }
+  .view { padding: 20px 0 30px; }
+  .card { padding: 12px; }
+  .tiny-caption { display: none; }
+}
