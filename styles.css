@@ -697,3 +697,20 @@ button { transition: all 0.18s ease; }
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
+/* ===== 和弦庫樣式 ===== */
+.chord-library-container { display: flex; flex-direction: column; gap: 20px; }
+.chord-controls { display: flex; gap: 12px; flex-wrap: wrap; }
+.chord-search { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #e9e8e0; border-radius: 6px; font-size: 13px; }
+.chord-select { padding: 10px 12px; border: 1px solid #e9e8e0; border-radius: 6px; background: #fbfaf6; font-size: 13px; cursor: pointer; }
+.chord-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+.chord-card { padding: 12px; background: #fbfaf6; border: 1px solid #e9e8e0; border-radius: 6px; cursor: pointer; text-align: center; transition: all 0.18s ease; }
+.chord-card:hover { background: #f3f4ed; border-color: var(--green); box-shadow: 0 2px 8px rgba(78, 112, 79, 0.1); }
+.chord-card-name { font-size: 14px; font-weight: 600; color: var(--green); }
+.chord-card-type { font-size: 11px; color: #a0a197; }
+.chord-detail-modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 100; align-items: center; justify-content: center; }
+.chord-detail-modal[hidden] { display: none; }
+.chord-detail-content { background: white; border-radius: 8px; padding: 24px; max-width: 400px; position: relative; }
+[data-theme="dark"] .chord-detail-content { background: #1a1f18; }
+.chord-detail-close { position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 24px; cursor: pointer; }

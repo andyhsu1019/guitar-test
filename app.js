@@ -1417,3 +1417,71 @@ if (document.readyState === 'loading') {
 } else {
   initChordChart();
 }
+
+
+// ===== 和弦庫數據 =====
+const chordLibraryData = {
+  'C': [
+    { type: 'major', frets: [0, 3, 2, 0, 1, 0], fingers: '1-3-2 指型' },
+    { type: 'minor', frets: [0, 3, 3, 0, 1, 0], fingers: '1-3-3 指型' },
+    { type: '7', frets: [0, 3, 2, 3, 1, 0], fingers: '標準 C7' },
+  ],
+  'E': [
+    { type: 'major', frets: [0, 2, 2, 1, 0, 0], fingers: '標準 E 和弦' },
+    { type: 'minor', frets: [0, 2, 2, 0, 0, 0], fingers: 'Em 標準' },
+  ],
+  'G': [
+    { type: 'major', frets: [3, 2, 0, 0, 0, 3], fingers: '標準 G 和弦' },
+  ],
+  'A': [
+    { type: 'major', frets: [0, 0, 2, 2, 2, 0], fingers: '標準 A 和弦' },
+    { type: 'minor', frets: [0, 0, 2, 2, 1, 0], fingers: 'Am 標準' },
+  ],
+  'D': [
+    { type: 'major', frets: [2, 3, 2, 0, 0, 0], fingers: '標準 D 和弦' },
+    { type: 'minor', frets: [1, 3, 2, 0, 0, 0], fingers: 'Dm 標準' },
+  ]
+};
+
+function initChordLibrary() {
+  const searchInput = document.getElementById('chord-search');
+  const rootFilter = document.getElementById('chord-root-filter');
+  const typeFilter = document.getElementById('chord-type-filter');
+  
+  function renderChords() {
+    const grid = document.getElementById('chord-grid');
+    grid.innerHTML = '';
+    
+    Object.entries(chordLibraryData).forEach(([root, chords]) => {
+      chords.forEach(chord => {
+        const card = document.createElement('div');
+        card.className = 'chord-card';
+        card.innerHTML = `<div class="chord-card-name">${root}${chord.type === 'major' ? '' : chord.type}</div><div class="chord-card-type">${chord.fingers}</div>`;
+        card.addEventListener('click', () => {
+          showChordDetail(root, chord);
+        });
+        grid.appendChild(card);
+      });
+    });
+  }
+  
+  function showChordDetail(root, chord) {
+    const modal = document.getElementById('chord-detail-modal');
+    const body = document.getElementById('chord-detail-body');
+    body.innerHTML = `<h3>${root} ${chord.type === 'major' ? '大和弦' : chord.type}</h3><p>指法：${chord.fingers}</p><p>格位：${chord.frets.join(' - ')}</p>`;
+    modal.hidden = false;
+  }
+  
+  document.getElementById('chord-detail-close')?.addEventListener('click', () => {
+    document.getElementById('chord-detail-modal').hidden = true;
+  });
+  
+  renderChords();
+}
+
+// 初始化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initChordLibrary);
+} else {
+  initChordLibrary();
+}
