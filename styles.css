@@ -507,3 +507,193 @@ button { transition: all 0.18s ease; }
   .card { padding: 12px; }
   .tiny-caption { display: none; }
 }
+
+
+/* ===== 和弦對照表樣式 ===== */
+.chord-chart-container {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.chord-chart-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6f7169;
+}
+
+.chord-select {
+  padding: 10px 12px;
+  border: 1px solid #e9e8e0;
+  border-radius: 6px;
+  background: #fbfaf6;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.chord-select:hover {
+  border-color: #d0d5c8;
+  background: #f3f4ed;
+}
+
+.chord-select:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px var(--green-pale);
+}
+
+[data-theme="dark"] .chord-select {
+  background: #2a2f28;
+  border-color: #3a4038;
+  color: #e8f5e9;
+}
+
+[data-theme="dark"] .chord-select:hover {
+  border-color: #4a5048;
+  background: #313630;
+}
+
+/* 指型圖卡片 */
+.chord-diagram-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.chord-name-display {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--green);
+  text-align: center;
+}
+
+.chord-diagram {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  border-radius: 8px;
+  background: #f6f4ef;
+  padding: 8px;
+  border: 1px solid #e9e8e0;
+}
+
+[data-theme="dark"] .chord-diagram {
+  background: #1a1f18;
+  border-color: #2a2f28;
+}
+
+.chord-fingering-guide {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.fingering-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: #fbfaf6;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.finger-label {
+  font-weight: 600;
+  color: #6f7169;
+}
+
+.finger-fret {
+  font-weight: 600;
+  color: var(--green);
+  font-family: "DM Mono", monospace;
+}
+
+[data-theme="dark"] .fingering-row {
+  background: #2a2f28;
+}
+
+[data-theme="dark"] .finger-label {
+  color: #b0b9a8;
+}
+
+/* 和弦信息卡片 */
+.chord-info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chord-info-card h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6f7169;
+}
+
+.chord-description {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #76796d;
+  margin: 0;
+}
+
+.chord-notes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.chord-notes strong {
+  color: #6f7169;
+}
+
+.chord-notes-list {
+  font-family: "DM Mono", monospace;
+  color: var(--green);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .chord-description {
+  color: #a4aa9d;
+}
+
+/* 響應式 - 平板 */
+@media (max-width: 1024px) {
+  .chord-chart-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .chord-fingering-guide {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* 響應式 - 手機 */
+@media (max-width: 768px) {
+  .chord-chart-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .chord-fingering-guide {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

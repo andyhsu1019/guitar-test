@@ -32,11 +32,14 @@
           <button class="nav-item" data-view="chordLibrary">
             <span class="nav-icon">♪</span><span>和弦庫</span>
           </button>
+                  <button class="nav-item" data-view="chordChart">
+            <span class="nav-icon">🎸</span><span>和弦對照表</span>
+          </button>
         </nav>
 
         <div class="nav-divider"></div>
 
-        <nav class="main-nav" aria-label="進度追踪">
+        <nav class="main-nav" aria-label="工具">
           <button class="nav-item" data-view="progress">
             <span class="nav-icon">📊</span><span>進度追踪</span>
           </button>
@@ -219,6 +222,105 @@
             <div class="answer-feedback" id="answer-feedback" aria-live="polite">選擇一個音格開始作答</div>
           </section>
           <div class="training-footnote"><span>✳</span> 指板音名依標準調弦排列；第 12 格為空弦音高的八度。</div>
+        </section>
+
+        <section class="view" id="view-chordChart">
+          <div class="page-heading">
+            <div><div class="eyebrow">CHORD REFERENCE <span>05</span></div><h1>和弦對照表</h1><p>快速查詢各種和弦的指型和按法。</p></div>
+          </div>
+          
+          <div class="chord-chart-container">
+            <!-- 控制面板 -->
+            <div class="card chord-chart-controls">
+              <div class="control-group">
+                <label for="chord-root-select">根音</label>
+                <select id="chord-root-select" class="chord-select">
+                  <option value="0">C</option>
+                  <option value="1">C♯/Db</option>
+                  <option value="2">D</option>
+                  <option value="3">D♯/Eb</option>
+                  <option value="4">E</option>
+                  <option value="5">F</option>
+                  <option value="6">F♯/Gb</option>
+                  <option value="7">G</option>
+                  <option value="8">G♯/Ab</option>
+                  <option value="9">A</option>
+                  <option value="10">A♯/Bb</option>
+                  <option value="11">B</option>
+                </select>
+              </div>
+
+              <div class="control-group">
+                <label for="chord-type-select">和弦類型</label>
+                <select id="chord-type-select" class="chord-select">
+                  <option value="major">大和弦 (Major)</option>
+                  <option value="minor">小和弦 (Minor)</option>
+                  <option value="7">七和弦 (7)</option>
+                  <option value="maj7">大七和弦 (maj7)</option>
+                  <option value="m7">小七和弦 (m7)</option>
+                  <option value="sus2">掛二和弦 (sus2)</option>
+                  <option value="sus4">掛四和弦 (sus4)</option>
+                  <option value="dim">減和弦 (dim)</option>
+                  <option value="aug">增和弦 (aug)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 指型圖 -->
+            <div class="card chord-diagram-card">
+              <div class="chord-name-display" id="chord-name-display">C 大和弦</div>
+              <svg class="chord-diagram" id="chord-diagram" viewBox="0 0 200 300">
+                <!-- 指板背景 -->
+                <rect x="20" y="20" width="160" height="240" fill="#f6f4ef" stroke="#d9d9cf" stroke-width="2"/>
+                <!-- 橫線 -->
+                <line x1="20" y1="60" x2="180" y2="60" stroke="#d9d9cf" stroke-width="1"/>
+                <line x1="20" y1="100" x2="180" y2="100" stroke="#d9d9cf" stroke-width="1"/>
+                <line x1="20" y1="140" x2="180" y2="140" stroke="#d9d9cf" stroke-width="1"/>
+                <line x1="20" y1="180" x2="180" y2="180" stroke="#d9d9cf" stroke-width="1"/>
+                <line x1="20" y1="220" x2="180" y2="220" stroke="#d9d9cf" stroke-width="1"/>
+                <!-- 豎線 -->
+                <line x1="50" y1="20" x2="50" y2="260" stroke="#d9d9cf" stroke-width="1"/>
+                <line x1="80" y1="20" x2="80" y2="260" stroke="#d9d9cf" stroke-width="1"/>
+                <line x1="110" y1="20" x2="110" y2="260" stroke="#d9d9cf" stroke-width="1"/>
+                <line x1="140" y1="20" x2="140" y2="260" stroke="#d9d9cf" stroke-width="1"/>
+                <line x1="170" y1="20" x2="170" y2="260" stroke="#d9d9cf" stroke-width="1"/>
+                <!-- 空弦標記 -->
+                <g id="open-string-marks"></g>
+                <!-- 按指 -->
+                <g id="fret-dots"></g>
+              </svg>
+
+              <!-- 按指說明 -->
+              <div class="chord-fingering-guide" id="chord-fingering-guide">
+                <div class="fingering-row">
+                  <span class="finger-label">食指：</span>
+                  <span class="finger-fret" id="finger-1">-</span>
+                </div>
+                <div class="fingering-row">
+                  <span class="finger-label">中指：</span>
+                  <span class="finger-fret" id="finger-2">-</span>
+                </div>
+                <div class="fingering-row">
+                  <span class="finger-label">無名指：</span>
+                  <span class="finger-fret" id="finger-3">-</span>
+                </div>
+                <div class="fingering-row">
+                  <span class="finger-label">小指：</span>
+                  <span class="finger-fret" id="finger-4">-</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 和弦信息 -->
+            <div class="card chord-info-card">
+              <h3>和弦信息</h3>
+              <p id="chord-description" class="chord-description">選擇根音和和弦類型以查看指型。</p>
+              <div class="chord-notes" id="chord-notes">
+                <strong>組成音：</strong>
+                <span id="chord-notes-list">-</span>
+              </div>
+            </div>
+          </div>
         </section>
       </main>
     </div>
